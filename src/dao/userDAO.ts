@@ -1,45 +1,49 @@
 import { db } from "../config/firebase";
-import admin from "firebase-admin";
 import { User } from "../models/User";
+export class UserDao {
+  private collection = db.collection('users');
 
-const usersCollection = db.collection("users");
+  // Crea un nuevo usuario
+  async create(user: User): Promise<string> {
+    user.createdAt = new Date();
+    user.updatedAt = new Date();
+    const docRef = await this.collection.add(user);
+    return docRef.id; // retorna el id generado
+  }
 
-export const userDao = {
-  
-  // Create
-  async create(userData: Omit<User, "id" | "createdAt" | "updatedAt">): Promise<User> {
-    const docRef = await usersCollection.add({
-      ...userData,
-      createdAt: admin.firestore.Timestamp.now(),
-      updatedAt: admin.firestore.Timestamp.now(),
-    });
-    const snap = await docRef.get();
-    return { id: snap.id, ...(snap.data() as User) };
-  },
-
-  // Search by user
+  // Obtiene un usuario por id
   async getById(id: string): Promise<User | null> {
-    const doc = await usersCollection.doc(id).get();
+    const doc = await this.collection.doc(id).get();
     if (!doc.exists) return null;
     return { id: doc.id, ...(doc.data() as User) };
-  },
+  }
 
-  // Get all users
+  // Actualiza un usuario por id
+  async update(id: string, user: Partial<User>): Promise<boolean> {
+    user.updatedAt = new Date();
+    try {
+      await this.collection.doc(id).update(user);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Borra un usuario por id
+  async delete(id: string): Promise<boolean> {
+    try {
+      await this.collection.doc(id).delete();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Obtiene todos los usuarios
   async getAll(): Promise<User[]> {
-    const snapshot = await usersCollection.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as User) }));
-  },
+    const snapshot = await this.collection.get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as User) }));
+  }
+}
 
-  // Update
-  async update(id: string, data: Partial<User>): Promise<void> {
-    await usersCollection.doc(id).update({
-      ...data,
-      updatedAt: admin.firestore.Timestamp.now(),
-    });
-  },
-
-  // delete
-  async delete(id: string): Promise<void> {
-    await usersCollection.doc(id).delete();
-  },
-};
+export default new UserDao();
