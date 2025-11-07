@@ -1,52 +1,84 @@
-import { Request, Response } from "express";
-import { userDao } from "../dao/userDAO";
+import { Request, Response } from 'express';
+import { UserDao } from '../dao/UserDAO';
+import { User } from '../models/User';
+import bcrypt from "bcrypt"
 
-export const userController = {
-  async create(req: Request, res: Response) {
+export class UserController {
+  private userDao: UserDao;
+
+  constructor() {
+    this.userDao = new UserDao();
+  }
+
+  async createUser(req: Request, res: Response): Promise<void> {
     try {
-      const user = await userDao.create(req.body);
-      res.status(201).json(user);
+      const userData: User = req.body;
+      //verify that the email is not repeated
+      const existingUsers = await this.userDao.getAll();
+      const emailExist = existingUsers.some(u => u.email === userData.email);
+      if (emailExist){
+        res.status(400).json({ error: 'El email ya está registrado' });
+        return;
+      }
+      //encrypt password
+      const salt = bcrypt.genSaltSync(10);
+      userData.password = bcrypt.hashSync(userData.password, salt);
+      const id = await this.userDao.create(userData);
+      res.status(201).json({ id });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error al crear usuario" });
+      res.status(500).json({ error: 'Error al crear usuario' });
     }
-  },
+  }
 
-  async getById(req: Request, res: Response) {
-  try {
-    const user = await userDao.getById(req.params.id);
-    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-    
-    return res.json(user);
-  } catch (error) {
-    return res.status(500).json({ message: "Error al obtener usuario" });
-    }
-  },
-
-  async getAll(req: Request, res: Response) {
+  async getUser(req: Request, res: Response): Promise<void> {
     try {
-      const users = await userDao.getAll();
+      const id = req.params.id;
+      const user = await this.userDao.getById(id);
+      if (!user) {
+        res.status(404).json({ error: 'Usuario no encontrado' });
+        return;
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: 'Error al obtener usuario' });
+    }
+  }
+
+  async updateUser(req: Request, res: Response): Promise<void> {
+    try {
+      const id = req.params.id;
+      const updateData: Partial<User> = req.body;
+      const success = await this.userDao.update(id, updateData);
+      if (!success) {
+        res.status(404).json({ error: 'Usuario no encontrado' });
+        return;
+      }
+      res.json({ message: 'Usuario actualizado' });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al actualizar usuario' });
+    }
+  }
+
+  async deleteUser(req: Request, res: Response): Promise<void> {
+    try {
+      const id = req.params.id;
+      const success = await this.userDao.delete(id);
+      if (!success) {
+        res.status(404).json({ error: 'Usuario no encontrado' });
+        return;
+      }
+      res.json({ message: 'Usuario eliminado' });
+    } catch (error) {
+      res.status(500).json({ error: 'Error al eliminar usuario' });
+    }
+  }
+
+  async listUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const users = await this.userDao.getAll();
       res.json(users);
     } catch (error) {
-      res.status(500).json({ message: "Error al obtener usuarios" });
+      res.status(500).json({ error: 'Error al listar usuarios' });
     }
-  },
-
-  async update(req: Request, res: Response) {
-    try {
-      await userDao.update(req.params.id, req.body);
-      res.json({ message: "Usuario actualizado correctamente" });
-    } catch (error) {
-      res.status(500).json({ message: "Error al actualizar usuario" });
-    }
-  },
-
-  async delete(req: Request, res: Response) {
-    try {
-      await userDao.delete(req.params.id);
-      res.json({ message: "Usuario eliminado" });
-    } catch (error) {
-      res.status(500).json({ message: "Error al eliminar usuario" });
-    }
-  },
-};
+  }
+}
