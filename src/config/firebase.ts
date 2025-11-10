@@ -7,7 +7,7 @@ dotenv.config();
 const keyPath =
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   path.join(__dirname, "../../serviceAccountKey.json");
-
+  
 const serviceAccount = require(path.resolve(keyPath));
 
 admin.initializeApp({
