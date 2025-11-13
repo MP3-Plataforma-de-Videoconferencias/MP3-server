@@ -17,5 +17,6 @@ router.post("/login", (req, res) => userController.login(req, res));
 router.post("/register", (req, res) => userController.register(req, res))
 router.put("/me", authenticateJWT, (req, res) => userController.updateUser(req, res));
 router.delete("/me", authenticateJWT, (req, res) => userController.deleteUser(req,res));
+router.put("/me/password", authenticateJWT, (req, res) => userController.changePassword(req, res))
 
 export default router;
