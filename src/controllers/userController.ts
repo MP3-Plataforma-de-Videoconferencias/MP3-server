@@ -6,6 +6,12 @@ import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import { error } from 'console';
 
+/**
+ * Validates password format using regex.
+ * Requires: 8+ chars, lowercase, uppercase, number, special char.
+ * @param {string} password
+ * @returns {boolean} True if password meets criteria
+ */
 function validatePassword(password: string): boolean {
   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
   return regex.test(password);
@@ -14,21 +20,37 @@ function validatePassword(password: string): boolean {
 export class UserController {
   private userDao: UserDao;
 
+  
+  /**
+   * Initializes UserController with a UserDao instance.
+   */
   constructor() {
     this.userDao = new UserDao();
   }
 
+    /**
+   * Creates a new user with:
+   * - first name
+   * - last name
+   * - age
+   * - email
+   * - password
+   * Validates email duplication and hashes the password.
+   * @param {Request} req 
+   * @param {Response} res 
+   * @returns {Promise<void>}
+   */
   async createUser(req: Request, res: Response): Promise<void> {
     try {
       const userData: User = req.body;
-      //verify that the email is not repeated
+      //Check if email already exists
       const existingUsers = await this.userDao.getAll();
       const emailExist = existingUsers.some(u => u.email === userData.email);
       if (emailExist){
         res.status(400).json({ error: 'The email is already registered' });
         return;
       }
-      //encrypt password
+      //Hash password
       const salt = bcrypt.genSaltSync(10);
       userData.password = bcrypt.hashSync(userData.password, salt);
       const id = await this.userDao.create(userData);
@@ -38,6 +60,11 @@ export class UserController {
     }
   }
 
+   /**
+   * Retrieves a user by ID.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
   async getUser(req: Request, res: Response): Promise<void> {
     try {
       const id = req.params.id;
@@ -52,6 +79,11 @@ export class UserController {
     }
   }
 
+    /**
+   * Updates a user by ID.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
   async update(req: Request, res: Response): Promise<void> {
     try {
       const id = req.params.id;
@@ -67,6 +99,11 @@ export class UserController {
     }
   }
 
+    /**
+   * Deletes a user by ID.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
   async delete(req: Request, res: Response): Promise<void> {
     try {
       const id = req.params.id;
@@ -81,6 +118,11 @@ export class UserController {
     }
   }
 
+    /**
+   * Returns all users.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
   async listUsers(req: Request, res: Response): Promise<void> {
     try {
       const users = await this.userDao.getAll();
@@ -90,6 +132,12 @@ export class UserController {
     }
   }
 
+    /**
+   * Registers a new user.
+   * Validates fields, email duplication and hashes the password.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
     async register(req: Request, res: Response): Promise<void> {
     try {
       const { firstName, lastName, age, email, password } = req.body;
@@ -106,7 +154,7 @@ export class UserController {
 
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Verify duplicate email
+      // Check if email already exists
       const existingUser = await this.userDao.userByEmail(normalizedEmail);
       if (existingUser) {
         res.status(400).json({ error: "The email is already registered" });
@@ -117,7 +165,7 @@ export class UserController {
       const salt = bcrypt.genSaltSync(10);
       const hashedPassword = bcrypt.hashSync(password, salt);
 
-      // Prepare object to create
+      // Build a new user
       const newUser: User = {
         firstName,
         lastName,
@@ -136,6 +184,11 @@ export class UserController {
     }
   }
 
+    /**
+   * Login user and returns JWT token.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
   async login(req: Request, res: Response): Promise<void> {
     try { 
       const { email, password } = req.body;
@@ -175,6 +228,12 @@ export class UserController {
     }
   }
 
+    /**
+   * Updates logged-in user's data.
+   * Only allows: email, firstName, lastName, age.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
    async updateUser(req: Request, res: Response): Promise<void> {
     try {
       // Verify user login
@@ -228,6 +287,11 @@ export class UserController {
     }
   }
 
+    /**
+   * Allows logged-in user to change password.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
   async changePassword(req: Request, res: Response): Promise<void> {
     try {
       const loggedUser = (req as any).user;
@@ -265,6 +329,11 @@ export class UserController {
     }
   }
 
+    /**
+   * Deletes logged-in user's account.
+   * @param {Request} req 
+   * @param {Response} res 
+   */
   async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       const loggedUser = (req as any).user;
@@ -288,5 +357,4 @@ export class UserController {
     }
   }
 
-  
 }
