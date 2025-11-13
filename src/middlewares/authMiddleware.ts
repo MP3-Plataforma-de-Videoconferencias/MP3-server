@@ -21,7 +21,7 @@ export async function authenticateJWT(req: Request, res: Response, next: NextFun
     });
 
     // Log para ver el payload
-    console.log('Payload token:', payload);
+    //console.log('Payload token:', payload);
 
     // Asigna el payload a req.user (será un objeto con userId y email)
     (req as any).user = payload;
