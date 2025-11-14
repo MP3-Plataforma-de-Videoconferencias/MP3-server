@@ -45,7 +45,7 @@ export class UserController {
       const userData: User = req.body;
       //Check if email already exists
       const existingUsers = await this.userDao.getAll();
-      const emailExist = existingUsers.some(u => u.email === userData.email);
+      const emailExist = existingUsers.some((u:any) => u.email === userData.email);
       if (emailExist){
         res.status(400).json({ error: 'The email is already registered' });
         return;
