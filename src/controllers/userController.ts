@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { UserDao } from '../dao/UserDAO';
+import { UserDao } from '../dao/userDAO';
 import { User } from '../models/User';
 
 import jwt from "jsonwebtoken"
