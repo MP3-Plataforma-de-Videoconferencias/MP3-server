@@ -8,8 +8,8 @@ dotenv.config();
 let serviceAccount: any;
 
 //usar variable de entorno json en producción
-if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 } else {
   //en local usa el archivo
   const keyPath = path.join(__dirname, "../../serviceAccountKey.json");
