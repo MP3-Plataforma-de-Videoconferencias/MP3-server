@@ -5,6 +5,7 @@ import { User } from '../models/User';
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import { error } from 'console';
+import { sendchangedEmail } from '../utils/emailService';
 
 /**
  * Validates password format using regex.
@@ -476,6 +477,84 @@ export class UserController {
     } catch (error) {
       console.error("Error deleting user:", error);
       res.status(500).json({ error: "Error deleting user" });
+    }
+  }
+
+  // Endpoint para solicitar recuperación de contraseña
+  async requestPasswordRecovery(req: Request, res: Response): Promise<void> {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ error: "Email requerido" });
+        return;
+      }
+
+      const user = await userDAO.userByEmail(email);
+      if (!user) {
+        res.status(404).json({ error: "Usuario no encontrado" });
+        return;
+      }
+
+      //Generate token
+      const jwtSecret = process.env.JWT_SECRET as string;
+      const token = jwt.sign(
+        { userId: user.id },
+        jwtSecret,
+        { expiresIn: '1h' }
+      );
+      console.log("token:", token);
+      // Envía correo con token en enlace
+      await sendchangedEmail(email, token);
+
+      res.status(200).json({ message: "Correo de recuperación enviado" });
+    } catch (error) {
+      console.error("Error en solicitud de recuperación:", error);
+      res.status(500).json({ error: "Error interno" });
+    }
+  }
+
+  // Endpoint para resetear contraseña con token y nueva contraseña
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { token, newPassword, confirmPassword } = req.body;
+      if (!token || !newPassword || !confirmPassword) {
+        res.status(400).json({ error: "Token y ambas contraseñas son requeridas" });
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        res.status(400).json({ error: "Las contraseñas no coinciden" });
+        return;
+      }
+
+      let payload: any;
+      try {
+        const jwtSecret = process.env.JWT_SECRET as string;
+        payload = jwt.verify(token, jwtSecret);
+      } catch (error) {
+        res.status(401).json({ error: "Token inválido o expirado" });
+        return;
+      }
+
+      const user = await userDAO.getById(payload.userId);
+      if (!user) {
+        res.status(404).json({ error: "Usuario no encontrado" });
+        return;
+      }
+
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      const updated = await userDAO.update(user.id as string, { password: hashedPassword });
+      if (!updated) {
+        res.status(500).json({ error: "Error al actualizar la contraseña" });
+        return;
+      }
+
+      res.status(200).json({ message: "Contraseña actualizada exitosamente" });
+    } catch (error) {
+      console.error("Error en resetear contraseña:", error);
+      res.status(500).json({ error: "Error interno" });
     }
   }
 
