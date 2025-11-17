@@ -8,16 +8,21 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 /**
- * @param email - User's email address
+ * Envía un correo para restablecer la contraseña con el token incluido en el enlace
+ * @param email - dirección de correo del usuario
+ * @param token - token JWT generado para recuperación de contraseña
  */
 export const sendchangedEmail = async (
   email: string,
+  token: string
 ): Promise<void> => {
   try {
     if (!process.env.SENDGRID_API_KEY) {
-      console.warn("SENDGRID_API_KEY not set. Welcome email not sent.");
+      console.warn("SENDGRID_API_KEY not set. Recovery email not sent.");
       return;
     }
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}&email=${email}`;
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -29,7 +34,7 @@ export const sendchangedEmail = async (
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: linear-gradient(135deg, #66eac5ff 0%, #4ba25fff 100%); color: white; text-align: center; padding: 30px; border-radius: 8px 8px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-          .button { display: inline-block; background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+          .button { display: inline-block; background: #28a745; color: white; text-decoration: none; padding: 12px 30px; border-radius: 5px; margin: 20px 0; font-weight: bold; }
         </style>
       </head>
       <body>
@@ -41,14 +46,8 @@ export const sendchangedEmail = async (
             <p>Hola,</p>
             <p>Hemos recibido una solicitud para restablecer tu contraseña</p>
             <p>Para crear una nueva contraseña, haz clic en el botón de abajo:</p>
-            
             <div style="text-align: center;">
-              <a 
-                href="${process.env.FRONTEND_URL}/reset-password?token=" 
-                style="display:inline-block; background:#28a745; color:white; text-decoration:none; padding:12px 30px; border-radius:5px; font-weight:bold; margin:20px 0;"
-                >
-                Cambiar mi contraseña
-               </a>
+              <a href="${resetUrl}" class="button">Cambiar mi contraseña</a>
             </div>
             <p>Si tú no realizaste esta solicitud, puedes ignorar este mensaje.</p>
           </div>
@@ -60,7 +59,7 @@ export const sendchangedEmail = async (
     const msg = {
       to: email,
       from: process.env.EMAIL_FROM || "teamcall.com@gmail.com",
-      subject: "TeamCall",
+      subject: "Restablecimiento de contraseña - TeamCall",
       html: htmlContent,
     };
 

@@ -116,4 +116,8 @@ router.delete("/me", authenticateJWT, (req, res) => userController.deleteUser(re
  */
 router.put("/me/password", authenticateJWT, (req, res) => userController.changePassword(req, res))
 
+router.post("/request-password-recovery", (req, res) => userController.requestPasswordRecovery(req, res));
+router.post("/reset-password", (req, res) => userController.resetPassword(req, res));
+
+
 export default router;
