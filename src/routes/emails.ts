@@ -4,10 +4,10 @@ import { sendchangedEmail } from "../utils/emailService";
 const router = Router();
 
 router.post("/changePassword", async (req, res) => {
-  const { email, firstName } = req.body;
+  const { email} = req.body;
 
   try {
-    await sendchangedEmail(email, firstName);
+    await sendchangedEmail(email);
     res.status(200).json({ message: "Correo enviado correctamente" });
   } catch (error) {
     console.error(error);
@@ -16,3 +16,4 @@ router.post("/changePassword", async (req, res) => {
 });
 
 export default router;
+
