@@ -1,6 +1,7 @@
 import express from 'express';
 import { UserController } from '../controllers/userController';
 import { authenticateJWT } from '../middlewares/authMiddleware';
+import { authenticateFirebase } from '../middlewares/authGoogleMiddleware';
 
 const router = express.Router();
 const userController = new UserController();
@@ -14,6 +15,7 @@ router.get('/', (req, res) => userController.listUsers(req, res));
 
 
 router.post("/login", (req, res) => userController.login(req, res));
+router.post("/loginGoogle", authenticateFirebase, (req, res) => userController.loginGoogle(req, res))
 router.post("/register", (req, res) => userController.register(req, res))
 router.put("/me", authenticateJWT, (req, res) => userController.updateUser(req, res));
 router.delete("/me", authenticateJWT, (req, res) => userController.deleteUser(req,res));
