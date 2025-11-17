@@ -35,7 +35,7 @@ router.get('/:id', (req, res) => userController.getUser(req, res));
  * @param {Response} res
  * @returns {void}
  */
-router.delete('/:id', (req, res) => userController.delete(req, res));
+//router.delete('/:id', (req, res) => userController.delete(req, res));
 
 /**
  * Lists all registered users.
