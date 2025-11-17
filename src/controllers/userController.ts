@@ -458,12 +458,13 @@ export class UserController {
   async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       const loggedUser = (req as any).user;
+      console.log("logg:", loggedUser)
       if (!loggedUser || !loggedUser.userId) {
         res.status(401).json({ error: "Unauthorized" });
         return;
       }
       const userId = loggedUser.userId;
-
+      console.log("id:", userId)
       const deleted = await this.userDao.delete(userId);
 
       if (!deleted) {
