@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { UserDao } from '../dao/userDAO';
+import userDAO, { UserDao } from '../dao/userDAO';
 import { User } from '../models/User';
 
 import jwt from "jsonwebtoken"
@@ -184,6 +184,58 @@ export class UserController {
     }
   }
 
+  async registerGoogle(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, password, confirmPassword, firstName, lastName, age } = req.body;
+
+      if(!validatePassword(password)){
+        res.status(400).json({ error: "Invalid password" });
+        return;
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+
+      // Check if email already exists
+      const existingUser = await this.userDao.userByEmail(normalizedEmail);
+      if (existingUser) {
+        res.status(400).json({ error: "The email is already registered" });
+        return;
+      }
+
+      // hash password
+      const salt = bcrypt.genSaltSync(10);
+      const hashedPassword = bcrypt.hashSync(password, salt);
+
+      // Build a new user
+      const newUser: User = {
+        firstName,
+        lastName,
+        age,
+        email: normalizedEmail,
+        password: hashedPassword,
+      };
+
+      // Create user 
+      const id = await this.userDao.create(newUser);
+
+      const user = await userDAO.getById(id);
+      if (!user) {
+        res.status(401).json({ message: "Invalid id" });
+        return;
+      }
+      //Generate token
+      const jwtSecret = process.env.JWT_SECRET as string;
+      const token = jwt.sign(
+        { userId: user.id },
+        jwtSecret,
+        { expiresIn: '1h' }
+      );
+      res.status(201).json({ message: "User created", id });
+    } catch (error) {
+      res.status(500).json({error: "User registration error"})
+    }
+  }
+
     /**
    * Login user and returns JWT token.
    * @param {Request} req 
@@ -221,6 +273,37 @@ export class UserController {
         { expiresIn: '1h' }
       );
       
+      res.status(200).json({message: 'Login successful', token});
+    } catch (error) {
+      console.log('login error:', error);
+      res.status(500).json({ error: 'login error'});
+    }
+  }
+
+  async loginGoogle(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, name, uid } = req.body;
+
+      //Verify email user 
+      const user = await this.userDao.userByEmail(email);
+      if(!user){
+        res.json({
+          status: "Incomplete profile",
+          email: email,
+          name: name,
+          userid: uid
+        })
+        return;
+      }
+
+      //Generate token
+      const jwtSecret = process.env.JWT_SECRET as string;
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        jwtSecret,
+        { expiresIn: '1h' }
+      );
+
       res.status(200).json({message: 'Login successful', token});
     } catch (error) {
       console.log('login error:', error);
