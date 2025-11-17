@@ -9,11 +9,9 @@ if (process.env.SENDGRID_API_KEY) {
 
 /**
  * @param email - User's email address
- * @param firstName - User's first name
  */
 export const sendchangedEmail = async (
   email: string,
-  firstName: string
 ): Promise<void> => {
   try {
     if (!process.env.SENDGRID_API_KEY) {
@@ -37,21 +35,22 @@ export const sendchangedEmail = async (
       <body>
         <div class="container">
           <div class="header">
-            <h1>¡Bienvenid@ a VideoConferenciasWeB!</h1>
+            <h1>¡Bienvenid@ a TeamCall!</h1>
           </div>
           <div class="content">
-            <p>Hola ${firstName},</p>
-            <p>Tu cuenta ha sido creada exitosamente.</p>
-            <p>Para cambiar tu contraseña, haz clic en el siguiente enlace: takataka</p>
+            <p>Hola,</p>
+            <p>Hemos recibido una solicitud para restablecer tu contraseña</p>
+            <p>Para crear una nueva contraseña, haz clic en el botón de abajo:</p>
             
             <div style="text-align: center;">
               <a 
-                href="${process.env.ORIGIN?.split(",")[0]}/change-password" 
+                href="${process.env.FRONTEND_URL}/reset-password?token=" 
                 style="display:inline-block; background:#28a745; color:white; text-decoration:none; padding:12px 30px; border-radius:5px; font-weight:bold; margin:20px 0;"
                 >
-                Cambiar contraseña
+                Cambiar mi contraseña
                </a>
             </div>
+            <p>Si tú no realizaste esta solicitud, puedes ignorar este mensaje.</p>
           </div>
         </div>
       </body>
@@ -60,8 +59,8 @@ export const sendchangedEmail = async (
 
     const msg = {
       to: email,
-      from: process.env.EMAIL_FROM || "noreply@streamia.com",
-      subject: "VideoConferenciasWeB",
+      from: process.env.EMAIL_FROM || "teamcall.com@gmail.com",
+      subject: "TeamCall",
       html: htmlContent,
     };
 
