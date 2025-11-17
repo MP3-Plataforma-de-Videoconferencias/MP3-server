@@ -184,6 +184,27 @@ export class UserController {
     }
   }
 
+  /**
+ * Registers a new user using data received during Google-based registration.
+ *
+ * This method handles manual completion of user data after Google authentication.
+ * It verifies the password, checks for duplicate emails, hashes the password,
+ * creates the user, and returns a JWT token.
+ *
+ * @param {Request} req - Express request containing user data in the body.
+ * @param {Response} res - Express response used to return the result.
+ * @returns {Promise<void>}
+ *
+ * @description
+ * - Validates password strength.
+ * - Normalizes email for consistency.
+ * - Verifies that the email is not already registered.
+ * - Hashes the password using bcrypt.
+ * - Builds a `User` object and creates it through the DAO.
+ * - Retrieves the created user to verify its existence.
+ * - Generates a JWT token for the newly registered user.
+ * - Handles errors and sends proper HTTP responses.
+ */
   async registerGoogle(req: Request, res: Response): Promise<void> {
     try {
       const { email, password, confirmPassword, firstName, lastName, age } = req.body;
@@ -280,9 +301,26 @@ export class UserController {
     }
   }
 
+  /**
+ * Handles user login using Google authentication.
+ * 
+ * This method assumes that a previous middleware has already validated
+ * the Google token and attached the Google user data to `req.user`.
+ *
+ * @param {Request} req - Express request object containing Google user info in `req.user`.
+ * @param {Response} res - Express response object used to send the result.
+ * @returns {Promise<void>}
+ *
+ * @description
+ * - Extracts Google user data (email, name, uid).
+ * - Checks whether the user already exists in the database.
+ * - If the user does *not* exist, returns a response indicating the profile is incomplete.
+ * - If the user exists, generates a JWT token and returns it.
+ * - Handles any errors with a 500 response.
+ */
   async loginGoogle(req: Request, res: Response): Promise<void> {
     try {
-      const { email, name, uid } = req.body;
+      const { email, name, uid } = (req as any).user;
 
       //Verify email user 
       const user = await this.userDao.userByEmail(email);
