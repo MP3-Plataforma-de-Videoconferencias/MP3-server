@@ -32,9 +32,9 @@ export const sendchangedEmail = async (
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #66eac5ff 0%, #4ba25fff 100%); color: white; text-align: center; padding: 30px; border-radius: 8px 8px 0 0; }
+          .header { background: linear-gradient(135deg, #090d0cff 0%, #abcbb3ff 100%); color: white; text-align: center; padding: 30px; border-radius: 8px 8px 0 0; }
           .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-          .button { display: inline-block; background: #28a745; color: white; text-decoration: none; padding: 12px 30px; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+          .button { display: inline-block; background: #9fd2abff; color: white; text-decoration: none; padding: 12px 30px; border-radius: 5px; margin: 20px 0; font-weight: bold; }
         </style>
       </head>
       <body>
