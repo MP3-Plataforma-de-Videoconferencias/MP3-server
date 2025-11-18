@@ -208,53 +208,87 @@ export class UserController {
  */
   async registerGoogle(req: Request, res: Response): Promise<void> {
     try {
-      const { email, password, confirmPassword, firstName, lastName, age } = req.body;
+      console.log("=== DEBUG registerGoogle ===");
+      console.log("Body recibido:", req.body);
+      console.log("User de Firebase:", (req as any).user);
+      
+      // Get Firebase user data from middleware
+      const firebaseUser = (req as any).user;
+      
+      // Get additional data from body
+      const { age } = req.body;
 
-      if(!validatePassword(password)){
-        res.status(400).json({ error: "Invalid password" });
+      // Validate required fields
+      if (!age) {
+        res.status(400).json({ error: "La edad es requerida" });
         return;
       }
 
-      const normalizedEmail = email.trim().toLowerCase();
+      if (!firebaseUser || !firebaseUser.email) {
+        res.status(400).json({ error: "Datos de Firebase inválidos" });
+        return;
+      }
+
+      const normalizedEmail = firebaseUser.email.trim().toLowerCase();
 
       // Check if email already exists
       const existingUser = await this.userDao.userByEmail(normalizedEmail);
       if (existingUser) {
-        res.status(400).json({ error: "The email is already registered" });
+        res.status(400).json({ error: "El email ya está registrado" });
         return;
       }
 
-      // hash password
-      const salt = bcrypt.genSaltSync(10);
-      const hashedPassword = bcrypt.hashSync(password, salt);
+      // Extract name from Firebase (handle cases where name might be empty)
+      const fullName = firebaseUser.name || firebaseUser.email.split("@")[0];
+      const nameParts = fullName.split(" ");
+      const firstName = nameParts[0] || "Usuario";
+      const lastName = nameParts.slice(1).join(" ") || "Google";
 
-      // Build a new user
+      // Generate a random password (won't be used for Google login)
+      const randomPassword = Math.random().toString(36).slice(-16) + Math.random().toString(36).slice(-16);
+      const salt = bcrypt.genSaltSync(10);
+      const hashedPassword = bcrypt.hashSync(randomPassword, salt);
+
+      // Build new user
       const newUser: User = {
         firstName,
         lastName,
-        age,
+        age: parseInt(age),
         email: normalizedEmail,
         password: hashedPassword,
       };
 
-      // Create user 
+      // Create user
       const id = await this.userDao.create(newUser);
 
-      const user = await userDAO.getById(id);
+      // Get created user
+      const user = await this.userDao.getById(id);
       if (!user) {
-        res.status(401).json({ message: "Invalid id" });
+        res.status(500).json({ error: "Error al crear usuario" });
         return;
       }
-      //Generate token
+
+      // Generate JWT token
       const jwtSecret = process.env.JWT_SECRET as string;
       const token = jwt.sign(
-        { userId: user.id },
+        { userId: user.id, email: user.email },
         jwtSecret,
         { expiresIn: '1h' }
       );
-      res.status(201).json({ message: "User created", id });
+
+      res.status(201).json({ 
+        message: "Usuario creado exitosamente", 
+        id,
+        token 
+      });
     } catch (error) {
-      res.status(500).json({error: "User registration error"})
+      console.error("=== ERROR en registerGoogle ===");
+      console.error("Error completo:", error);
+      console.error("Stack:", (error as Error).stack);
+      res.status(500).json({
+        error: "Error en registro de usuario", 
+        details: (error as Error).message
+      });
     }
   }
 
@@ -305,50 +339,59 @@ export class UserController {
   /**
  * Handles user login using Google authentication.
  * 
- * This method assumes that a previous middleware has already validated
- * the Google token and attached the Google user data to `req.user`.
- *
- * @param {Request} req - Express request object containing Google user info in `req.user`.
- * @param {Response} res - Express response object used to send the result.
+ * @param {Request} req - Express request with Firebase user data
+ * @param {Response} res - Express response
  * @returns {Promise<void>}
- *
- * @description
- * - Extracts Google user data (email, name, uid).
- * - Checks whether the user already exists in the database.
- * - If the user does *not* exist, returns a response indicating the profile is incomplete.
- * - If the user exists, generates a JWT token and returns it.
- * - Handles any errors with a 500 response.
  */
-  async loginGoogle(req: Request, res: Response): Promise<void> {
-    try {
-      const { email, name, uid } = (req as any).user;
+async loginGoogle(req: Request, res: Response): Promise<void> {
+  try {
+    const firebaseUser = (req as any).user;
 
-      //Verify email user 
-      const user = await this.userDao.userByEmail(email);
-      if(!user){
-        res.json({
-          status: "Incomplete profile",
-          email: email,
-          name: name,
-          userid: uid
-        })
-        return;
-      }
-
-      //Generate token
-      const jwtSecret = process.env.JWT_SECRET as string;
-      const token = jwt.sign(
-        { userId: user.id, email: user.email },
-        jwtSecret,
-        { expiresIn: '1h' }
-      );
-
-      res.status(200).json({message: 'Login successful', token});
-    } catch (error) {
-      console.log('login error:', error);
-      res.status(500).json({ error: 'login error'});
+    if (!firebaseUser || !firebaseUser.email) {
+      res.status(400).json({ error: "Datos de Firebase inválidos" });
+      return;
     }
+
+    const normalizedEmail = firebaseUser.email.trim().toLowerCase();
+
+    // Check if user exists
+    const user = await this.userDao.userByEmail(normalizedEmail);
+    
+    if (!user) {
+      // User doesn't exist - need to complete registration
+      res.status(200).json({
+        status: "incomplete_profile",
+        message: "Usuario no registrado. Complete el registro.",
+        email: firebaseUser.email,
+        name: firebaseUser.name,
+        uid: firebaseUser.uid
+      });
+      return;
+    }
+
+    // User exists - generate JWT token
+    const jwtSecret = process.env.JWT_SECRET as string;
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      jwtSecret,
+      { expiresIn: '1h' }
+    );
+
+    res.status(200).json({
+      message: "Login exitoso",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName
+      }
+    });
+  } catch (error) {
+    console.error("Error en loginGoogle:", error);
+    res.status(500).json({ error: "Error en login con Google" });
   }
+}
 
     /**
    * Updates logged-in user's data.
@@ -559,3 +602,4 @@ export class UserController {
   }
 
 }
+
