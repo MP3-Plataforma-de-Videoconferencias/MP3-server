@@ -5,14 +5,28 @@ import { InformationMeetings } from "../models/InformationMeetings";
 
 export class MeetingController {
 
+  /**
+   * Creates a new meeting entry.
+   * Generates a unique meeting ID (formatted in 3-character groups).
+   * Saves the meeting in the database using MeetingDao.
+   *
+   * @param {Request} req - Express request object containing meeting data
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} Sends JSON response with created meeting details
+   *
+   * @example
+   * POST /meetings
+   * {
+   *   "createdBy": "user123"
+   * }
+   */
   async createMeeting(req: Request, res: Response): Promise<void> {
     try {
-      
       const rawId = nanoid(9);
       const formattedId = rawId.match(/.{1,3}/g)?.join("-") || rawId;
 
       const createdBy = req.body.createdBy || "unknown_user";
-      
+
       const meetingData: InformationMeetings = {
         idMeeting: formattedId,
         createdAt: new Date(),
@@ -36,6 +50,16 @@ export class MeetingController {
     }
   }
 
+  /**
+   * Retrieves a meeting by ID.
+   *
+   * @param {Request} req - Express request with meeting ID in params
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} Sends meeting data or 404 if not found
+   *
+   * @example
+   * GET /meetings/:id
+   */
   async getMeeting(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -53,6 +77,19 @@ export class MeetingController {
     }
   }
 
+  /**
+   * Updates an existing meeting with new data.
+   *
+   * @param {Request} req - Express request with meeting ID and update body
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} Sends success status or 404 if meeting not found
+   *
+   * @example
+   * PATCH /meetings/:id
+   * {
+   *   "createdBy": "new-user"
+   * }
+   */
   async updateMeeting(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -70,6 +107,16 @@ export class MeetingController {
     }
   }
 
+  /**
+   * Deletes a meeting from the database.
+   *
+   * @param {Request} req - Express request containing meeting ID
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} Sends { ok: true } or 404 if not found
+   *
+   * @example
+   * DELETE /meetings/:id
+   */
   async deleteMeeting(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -87,6 +134,16 @@ export class MeetingController {
     }
   }
 
+  /**
+   * Marks a meeting as finished by setting `finishedAt` to the current date.
+   *
+   * @param {Request} req - Express request containing meeting ID
+   * @param {Response} res - Express response object
+   * @returns {Promise<void>} Sends { ok: true } or 404 if meeting not found
+   *
+   * @example
+   * PATCH /meetings/:id/finish
+   */
   async finishMeeting(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
